@@ -105,30 +105,16 @@ def qualify_address(address: str, area_suffix: str) -> str:
     return f"{address}, {area_suffix}"
 
 
-def geocode_with_fallbacks(address: str, area_suffix: str):
+def geocode_with_fallbacks(
+    address: str,
+    area_suffix: str,
+) -> GeocodedAddress | None:
     base_query = qualify_address(address, area_suffix)
-
-    queries = [
-        base_query,
-        base_query.replace(" Circle", " Cir"),
-        base_query.replace(" S ", " South "),
-        base_query.replace(" N ", " North "),
-        base_query.replace(" N ", " North "),
-        base_query.replace(" E ", " East "),
-        base_query.replace(" W ", " West "),
-        base_query.replace(" Boulevard ", " Blvd "),
-        base_query.replace(" Street ", " Str "),
-        base_query.replace(" Avenue ", " Ave "),
-    ]
-
-    has_zip_code = bool(
-        re.search(r"\b\d{5}(?:-\d{4})?\b", base_query)
-    )
 
     base_variations = [base_query]
 
-# When a ZIP is present, also try the address without it.
-    if has_zip_code:
+    # If the address has a ZIP code, also try it without the ZIP.
+    if re.search(r"\b\d{5}(?:-\d{4})?\b", base_query):
         without_zip = re.sub(
             r",?\s*\b\d{5}(?:-\d{4})?\b",
             "",
@@ -138,6 +124,75 @@ def geocode_with_fallbacks(address: str, area_suffix: str):
         base_variations.append(without_zip)
 
     queries: list[str] = []
+
+    for query in base_variations:
+        queries.extend(
+            [
+                query,
+                re.sub(
+                    r"\bCircle\b",
+                    "Cir",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bCir\b",
+                    "Circle",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bSouth\b",
+                    "S",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bNorth\b",
+                    "N",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bEast\b",
+                    "E",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bWest\b",
+                    "W",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bBoulevard\b",
+                    "Blvd",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bStreet\b",
+                    "St",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bAvenue\b",
+                    "Ave",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+                re.sub(
+                    r"\bRoad\b",
+                    "Rd",
+                    query,
+                    flags=re.IGNORECASE,
+                ),
+            ]
+        )
+
+    # Remove duplicate query variations while preserving order.
 
 
     for query in dict.fromkeys(queries):

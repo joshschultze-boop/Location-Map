@@ -204,6 +204,7 @@ def geocode_addresses(
 
         progress.empty()
     return successful, failed
+)
 
 
 def add_center_marker(

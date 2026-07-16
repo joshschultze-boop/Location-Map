@@ -121,8 +121,24 @@ def geocode_with_fallbacks(address: str, area_suffix: str):
         base_query.replace(" Avenue ", " Ave "),
     ]
 
-    if not re.search(r"\b\d{5}\b", base_query):
-        queries.append(f"{base_query}")
+        has_zip_code = bool(
+        re.search(r"\b\d{5}(?:-\d{4})?\b", base_query)
+        )
+
+    base_variations = [base_query]
+
+# When a ZIP is present, also try the address without it.
+    if has_zip_code:
+        without_zip = re.sub(
+            r",?\s*\b\d{5}(?:-\d{4})?\b",
+            "",
+            base_query,
+        ).strip(" ,")
+
+        base_variations.append(without_zip)
+
+    queries: list[str] = []
+
 
     for query in dict.fromkeys(queries):
         result = geocode_query(query)

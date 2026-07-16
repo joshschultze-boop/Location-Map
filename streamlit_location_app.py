@@ -121,9 +121,9 @@ def geocode_with_fallbacks(address: str, area_suffix: str):
         base_query.replace(" Avenue ", " Ave "),
     ]
 
-        has_zip_code = bool(
+    has_zip_code = bool(
         re.search(r"\b\d{5}(?:-\d{4})?\b", base_query)
-        )
+    )
 
     base_variations = [base_query]
 

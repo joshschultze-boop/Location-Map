@@ -435,7 +435,9 @@ if submitted:
 
                     st.session_state["map_center"] = center_results[0]
                     st.session_state["map_points"] = comparison_points
+                    st.session_state["manual_points"] = []
                     st.session_state["failed_addresses"] = failed_addresses
+                    st.session_state["manual_failed_addresses"] = []
                     st.session_state["uploaded_address_count"] = len(
                         uploaded_addresses
                     )
@@ -443,9 +445,117 @@ if submitted:
 
 if "map_center" in st.session_state:
     center_point: GeocodedAddress = st.session_state["map_center"]
-    comparison_points: list[GeocodedAddress] = st.session_state["map_points"]
-    failed_addresses: list[str] = st.session_state["failed_addresses"]
+    excel_points: list[GeocodedAddress] = st.session_state["map_points"]
+    manual_points: list[GeocodedAddress] = st.session_state.setdefault(
+        "manual_points",
+        [],
+    )
+    excel_failed_addresses: list[str] = st.session_state["failed_addresses"]
+    manual_failed_addresses: list[str] = st.session_state.setdefault(
+        "manual_failed_addresses",
+        [],
+    )
     uploaded_address_count: int = st.session_state["uploaded_address_count"]
+
+    st.divider()
+    st.subheader("Add locations after upload")
+    st.caption(
+        "Enter one address per line. New locations are added as blue points "
+        "without requiring another Excel upload."
+    )
+
+    with st.form("add_locations_form", clear_on_submit=True):
+        additional_address_text = st.text_area(
+            "Additional addresses",
+            placeholder=(
+                "4614 S 140th Street, Omaha, NE 68137\n"
+                "11529 Portal Road, La Vista, NE 68128"
+            ),
+            height=110,
+        )
+        add_locations_submitted = st.form_submit_button(
+            "Add locations to map",
+            type="primary",
+            use_container_width=True,
+        )
+
+    if add_locations_submitted:
+        new_addresses = clean_address_values(
+            additional_address_text.splitlines()
+        )
+
+        if not new_addresses:
+            st.warning("Enter at least one address to add.")
+        else:
+            existing_addresses = {
+                center_point.address.casefold(),
+                *(point.address.casefold() for point in excel_points),
+                *(point.address.casefold() for point in manual_points),
+            }
+
+            addresses_to_add = [
+                address
+                for address in new_addresses
+                if address.casefold() not in existing_addresses
+            ]
+            duplicate_count = len(new_addresses) - len(addresses_to_add)
+
+            if not addresses_to_add:
+                st.info("All entered addresses are already on the map.")
+            else:
+                added_points, newly_failed = geocode_addresses(
+                    addresses_to_add,
+                    area_suffix,
+                    "Geocoding additional addresses",
+                )
+
+                st.session_state["manual_points"].extend(added_points)
+
+                known_failed = {
+                    address.casefold()
+                    for address in st.session_state["manual_failed_addresses"]
+                }
+                st.session_state["manual_failed_addresses"].extend(
+                    address
+                    for address in newly_failed
+                    if address.casefold() not in known_failed
+                )
+
+                if added_points:
+                    st.success(
+                        f"Added {len(added_points)} new location"
+                        f"{'s' if len(added_points) != 1 else ''}."
+                    )
+
+                if duplicate_count:
+                    st.info(
+                        f"Skipped {duplicate_count} duplicate address"
+                        f"{'es' if duplicate_count != 1 else ''}."
+                    )
+
+                if newly_failed:
+                    st.warning(
+                        f"Could not map {len(newly_failed)} entered address"
+                        f"{'es' if len(newly_failed) != 1 else ''}."
+                    )
+
+    if st.session_state["manual_points"]:
+        if st.button(
+            "Clear manually added locations",
+            use_container_width=True,
+        ):
+            st.session_state["manual_points"] = []
+            st.session_state["manual_failed_addresses"] = []
+            st.rerun()
+
+    # Refresh local values after the add-location form updates session state.
+    manual_points = st.session_state["manual_points"]
+    manual_failed_addresses = st.session_state["manual_failed_addresses"]
+    comparison_points = [*excel_points, *manual_points]
+    failed_addresses = [
+        *excel_failed_addresses,
+        *manual_failed_addresses,
+    ]
 
     st.divider()
 
@@ -483,10 +593,11 @@ if "map_center" in st.session_state:
     )
 
     mapped_count = len(comparison_points)
-    metric_1, metric_2, metric_3 = st.columns(3)
-    metric_1.metric("Uploaded addresses", uploaded_address_count)
-    metric_2.metric("Mapped blue points", mapped_count)
-    metric_3.metric("Could not map", len(failed_addresses))
+    metric_1, metric_2, metric_3, metric_4 = st.columns(4)
+    metric_1.metric("Excel addresses", uploaded_address_count)
+    metric_2.metric("Added manually", len(manual_points))
+    metric_3.metric("Mapped blue points", mapped_count)
+    metric_4.metric("Could not map", len(failed_addresses))
 
     try:
         st_folium(
@@ -532,8 +643,8 @@ if "map_center" in st.session_state:
             expanded=True,
         ):
             st.warning(
-                "Add a city, state, or ZIP code to these entries and upload the "
-                "revised workbook."
+                "Add a city, state, or ZIP code, then either enter the revised "
+                "address above or upload a revised workbook."
             )
             st.dataframe(
                 pd.DataFrame({"Unmapped Address": failed_addresses}),

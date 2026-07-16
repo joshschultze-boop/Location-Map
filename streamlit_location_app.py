@@ -192,17 +192,17 @@ def geocode_addresses(
     for index, address in enumerate(addresses, start=1):
         point = geocode_with_fallbacks(address, area_suffix)
 
-    if point is None:
-        failed.append(address)
-    else:
-        successful.append(point)
+        if point is None:
+            failed.append(address)
+        else:
+            successful.append(point)
 
-        progress.progress(
-            index / total,
-            text=f"{progress_label} ({index} of {len(addresses)})",
-        )
+            progress.progress(
+                index / total,
+                text=f"{progress_label} ({index} of {len(addresses)})",
+            )
 
-    progress.empty()
+        progress.empty()
     return successful, failed
 
 

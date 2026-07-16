@@ -182,7 +182,7 @@ def geocode_addresses(
     addresses: list[str],
     area_suffix: str,
     progress_label: str,
-) -> tuple[list[GeocodedAddress], list[str]]:
+    tuple[list[GeocodedAddress], list[str]]:
     successful: list[GeocodedAddress] = []
     failed: list[str] = []
 

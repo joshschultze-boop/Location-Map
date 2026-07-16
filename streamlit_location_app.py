@@ -105,29 +105,24 @@ def qualify_address(address: str, area_suffix: str) -> str:
     return f"{address}, {area_suffix}"
 
 
-def geocode_with_fallbacks(
-    address: str,
-    area_suffix: str,
-) -> GeocodedAddress | None:
-    """Try several common address formats before returning a failure."""
+def geocode_with_fallbacks(address: str, area_suffix: str):
     base_query = qualify_address(address, area_suffix)
 
     queries = [
         base_query,
         base_query.replace(" Circle", " Cir"),
-        base_query.replace(" Cir,", " Circle,"),
         base_query.replace(" S ", " South "),
-        base_query.replace(" South ", " S "),
+        base_query.replace(" N ", " North "),
+        base_query.replace(" N ", " North "),
+        base_query.replace(" E ", " East "),
+        base_query.replace(" W ", " West "),
+        base_query.replace(" Boulevard ", " Blvd "),
+        base_query.replace(" Street ", " Str "),
+        base_query.replace(" Avenue ", " Ave "),
     ]
 
-    # Specific known ZIP-code fallback for the center property.
-    if (
-        "4100" in base_query
-        and "76th" in base_query.lower()
-        and "omaha" in base_query.lower()
-        and not re.search(r"\b\d{5}\b", base_query)
-    ):
-        queries.append(f"{base_query} 68127")
+    if not re.search(r"\b\d{5}\b", base_query):
+        queries.append(f"{base_query}")
 
     for query in dict.fromkeys(queries):
         result = geocode_query(query)

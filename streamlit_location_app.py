@@ -84,15 +84,22 @@ def geocode_query(query: str) -> tuple[float, float, str] | None:
 
 
 def qualify_address(address: str, area_suffix: str) -> str:
-    """Append a city/region suffix if the address does not already name the city."""
-    address = address.strip().strip(",")
+    """Append the default area only when the address appears incomplete."""
+    address = re.sub(r"\s+", " ", address).strip().strip(",")
     area_suffix = area_suffix.strip().strip(",")
 
     if not area_suffix:
         return address
 
-    city = area_suffix.split(",", maxsplit=1)[0].strip().lower()
-    if city and city in address.lower():
+    has_zip_code = bool(
+        re.search(r"\b\d{5}(?:-\d{4})?\b", address)
+    )
+
+    has_city_and_state = bool(
+        re.search(r",\s*[^,]+,\s*[A-Z]{2}\b", address, flags=re.IGNORECASE)
+    )
+
+    if has_zip_code or has_city_and_state:
         return address
 
     return f"{address}, {area_suffix}"

@@ -182,7 +182,7 @@ def geocode_addresses(
     addresses: list[str],
     area_suffix: str,
     progress_label: str,
-    tuple[list[GeocodedAddress], list[str]]:
+) -> tuple[list[GeocodedAddress], list[str]]:
     successful: list[GeocodedAddress] = []
     failed: list[str] = []
 
@@ -197,15 +197,13 @@ def geocode_addresses(
         else:
             successful.append(point)
 
-            progress.progress(
-                index / total,
-                text=f"{progress_label} ({index} of {len(addresses)})",
-            )
+        progress.progress(
+            index / total,
+            text=f"{progress_label} ({index} of {len(addresses)})",
+        )
 
-        progress.empty()
+    progress.empty()
     return successful, failed
-)
-
 
 def add_center_marker(
     map_object: folium.Map,

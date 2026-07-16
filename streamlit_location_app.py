@@ -190,7 +190,7 @@ def geocode_addresses(
     total = max(len(addresses), 1)
 
     for index, address in enumerate(addresses, start=1):
-    point = geocode_with_fallbacks(address, area_suffix)
+        point = geocode_with_fallbacks(address, area_suffix)
 
     if point is None:
         failed.append(address)
